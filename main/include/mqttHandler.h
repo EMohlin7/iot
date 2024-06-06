@@ -8,6 +8,8 @@
 /// @param brokerPort Port of the broker the client will connect to
 bool startMqtt(esp_mqtt_client_handle_t mqttClient, const char* brokerUri, uint16_t brokerPort);
 
+void stopMqtt(esp_mqtt_client_handle_t mqttClient);
+
 /// @brief Create a client used to communicate with the MQTT broker 
 /// @param clientId Name of the client. If NULL will get a default name
 /// @return Client handle

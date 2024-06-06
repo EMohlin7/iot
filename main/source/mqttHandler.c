@@ -106,3 +106,7 @@ bool startMqtt(esp_mqtt_client_handle_t mqttClient, const char* brokerUri, uint1
     return connected;
 }
 
+void stopMqtt(esp_mqtt_client_handle_t mqttClient){
+    esp_mqtt_client_stop(mqttClient);
+}
+
