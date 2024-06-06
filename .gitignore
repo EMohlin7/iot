@@ -1,0 +1,8 @@
+.vscode
+build
+debug.sh
+gdbinit
+sdkconfig.old
+lex.yy.c
+configParser.tab.h
+configParser.tab.c
