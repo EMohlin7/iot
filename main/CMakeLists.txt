@@ -5,8 +5,11 @@ idf_component_register(
     "source/configServer.c"
     "source/lex.yy.c"
     "source/configParser.tab.c"
+    "source/sensors.c"
+
+    "dht11/dht11.c"
                     
     
-    INCLUDE_DIRS "." "include")
+    INCLUDE_DIRS "." "include" "dht11/include")
 
 
