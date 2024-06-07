@@ -1,0 +1,3 @@
+[submodule "main/dht11"]
+	path = main/dht11
+	url = git@github.com:Anacron-sec/esp32-DHT11.git
