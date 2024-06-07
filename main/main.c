@@ -2,7 +2,6 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include <inttypes.h>
 #include "driver/gpio.h"
 #include "nvs_flash.h" 
 #include "esp_wifi.h"
@@ -10,10 +9,16 @@
 #include "wifiController.h"
 #include "mqttHandler.h"
 #include "configServer.h"
+#include "sensors.h"
 
 #define TAG "Main"
-#define RESET_PIN 32
-#define RESET_PIN_MASK (1ull << RESET_PIN)
+
+#define setupNvsGet(type, nvs, key, dest, size) nvs_get_##type(nvs, key, dest, size)
+#define NVSreadConfig(nvs, key, dest, sizePtr) _Generic((dest), \
+    char*: setupNvsGet(str, nvs, key, dest, sizePtr),           \
+    unsigned char*: setupNvsGet(str, nvs, key, dest, sizePtr),  \
+    uint16_t*: setupNvsGet(u16, nvs, key, dest, sizePtr),       \
+)
 
 typedef struct 
 {
@@ -22,37 +27,98 @@ typedef struct
 } reset_t;
 
 
-void resetISR (void* resetStruct){
+static void resetISR (void* resetStruct){
     reset_t* reset = (reset_t*)resetStruct;
     if(reset->connected)
         xSemaphoreGiveFromISR(reset->resetSem, NULL);
 }
 
 
-void config(void* args){
+//Load already saved configuration data from NVS
+static bool loadConfig(nvs_handle_t nvs, configData_t* configData){
+    size_t size = sizeof(configData->ssid);
+    ESP_LOGI(TAG, "Loading config");
+    esp_err_t err = nvs_get_str(nvs, NVS_SSID_KEY, (char*)configData->ssid, &size);
+    if(err)
+        goto loadFail;
+
+    size = sizeof(configData->password);
+    err = nvs_get_str(nvs, NVS_PASS_KEY, (char*)configData->password, &size);
+    if(err)
+        goto loadFail;
+
+    size = sizeof(configData->mqttURL);
+    err = nvs_get_str(nvs, NVS_BROKER_ADRS_KEY, (char*)configData->mqttURL, &size);
+    if(err)
+        goto loadFail;
+
+    err = nvs_get_u16(nvs, NVS_BROKER_PORT_KEY, &configData->mqttPort);
+    if(err)
+        goto loadFail;
+
+    ESP_LOGI(TAG, "Loaded config");
+    return true;
+
+loadFail:
+    ESP_LOGI(TAG, "Failed to load config");
+    return false;
+}
+
+static bool saveConfig(nvs_handle_t nvs, configData_t* configData){
+    ESP_LOGI(TAG, "Saving config");
+    esp_err_t err = nvs_set_str(nvs, NVS_SSID_KEY, (char*)configData->ssid);
+    if(err)
+        goto saveFail;
+
+    err = nvs_set_str(nvs, NVS_PASS_KEY, (char*)configData->password);
+    if(err)
+        goto saveFail;
+
+    err = nvs_set_str(nvs, NVS_BROKER_ADRS_KEY, (char*)configData->mqttURL);
+    if(err)
+        goto saveFail;
+
+    err = nvs_set_u16(nvs, NVS_BROKER_PORT_KEY, configData->mqttPort);
+    if(err)
+        goto saveFail;
+
+    ESP_LOGI(TAG, "Save config");
+    return true;
+saveFail:
+    ESP_LOGI(TAG, "Failed to save config");
+    return false;
+}
+
+static void configTask(void* args){
+    esp_mqtt_client_handle_t mqttClient = (esp_mqtt_client_handle_t)args;
     reset_t reset = {
         .resetSem = xSemaphoreCreateBinary(),
         .connected = false
     };
 
+    //Semaphore is created in an empty state
+    SemaphoreHandle_t configFinished = xSemaphoreCreateBinary();
+    configData_t configData;
+
     gpio_isr_handler_add(RESET_PIN, resetISR, &reset);
 
-    esp_mqtt_client_handle_t mqttClient = createMqttClient(NULL);
+    nvs_handle_t nvs;
+    nvs_open(NVS_CONFIG_NS, NVS_READWRITE, &nvs);
+
+    if(loadConfig(nvs, &configData))
+        goto configReceived;
 
     while(true){
         while(!reset.connected){
             startWifiAP();
-
-            //Semaphore is created in an empty state
-            SemaphoreHandle_t configFinished = xSemaphoreCreateBinary();
-            configData_t configData;
-
             startConfigServer(configFinished, &configData);
+
             ESP_LOGI(TAG, "Waiting for config");
             xSemaphoreTake(configFinished, portMAX_DELAY);
             ESP_LOGI(TAG, "Config is finished");
 
             stopWifi();
+configReceived:
             reset.connected = startWifiSTA(configData.ssid, configData.password) && 
                 startMqtt(mqttClient, configData.mqttURL, configData.mqttPort);
 
@@ -60,6 +126,7 @@ void config(void* args){
                 stopWifi();
         }
 
+        saveConfig(nvs, &configData);
         xSemaphoreTake(reset.resetSem, portMAX_DELAY);
         reset.connected = false;
         stopMqtt(mqttClient);
@@ -81,6 +148,7 @@ void app_main(void)
     esp_netif_create_default_wifi_ap();
     esp_netif_create_default_wifi_sta();
 
+    //Setup reset button gpio pin
     gpio_config_t ioConfig = {
         .mode = GPIO_MODE_INPUT,
         .pull_down_en = false,
@@ -90,9 +158,11 @@ void app_main(void)
     };
 
     gpio_install_isr_service(ESP_INTR_FLAG_EDGE);
+    initSensors();
     gpio_config(&ioConfig);
 
-    xTaskCreate(config, "confTask", CONFIG_MAIN_TASK_STACK_SIZE, NULL, 1, NULL);
+    esp_mqtt_client_handle_t mqttClient = createMqttClient(NULL);
+    xTaskCreate(configTask, "confTask", CONFIG_MAIN_TASK_STACK_SIZE, mqttClient, 1, NULL);
 
 
     uint8_t level = 0;
