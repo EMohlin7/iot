@@ -10,13 +10,6 @@ extern void* yy_scan_bytes ( const char *bytes, int len);
 #define TAG "Config Server"
 ESP_EVENT_DEFINE_BASE(CONFIG_EVENT);
 
-//Redirect to login portal
-static void redirect(httpd_req_t* req){
-    httpd_resp_set_status(req, "302");
-    httpd_resp_set_hdr(req, "Location", AP_IP);
-    httpd_resp_send(req, NULL, 0);
-}
-
 static esp_err_t onGet(httpd_req_t* req){
     // If ESP_OK is not returned the underlying socket will be closed
     ESP_LOGI(TAG, "Received get request for URI: %s", req->uri);

@@ -2,18 +2,24 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/timers.h"
+#include "freertos/event_groups.h"
 #include "esp_log.h"
 #include "config.h"
 #include "driver/gpio.h"
 #include "dht11.h"
 
 #define TAG "Sensor"
-
+#define MOVE_BIT 1
+#define NO_MOVE_BIT 2
 ESP_EVENT_DEFINE_BASE(SENSOR_EVENT);
 static StaticTimer_t moveInitTimer;
+static StaticEventGroup_t moveEventBuffer;
+static EventGroupHandle_t moveEvent;
 
 static void movementISR(void* args){
-    
+    EventGroupHandle_t moveEvent = (EventGroupHandle_t)args;
+    bool high = gpio_get_level(MOVE_PIN);
+    xEventGroupSetBitsFromISR(moveEvent, (MOVE_BIT*high) | (NO_MOVE_BIT * !high), NULL);
 }
 
 static void onMoveInitFin(TimerHandle_t arg){
@@ -36,17 +42,32 @@ void initSensors(){
         "moveInit", pdMS_TO_TICKS(1000*60), false, NULL, onMoveInitFin, &moveInitTimer);
 
     xTimerStart(timerHandle, pdMS_TO_TICKS(1000*60));
-
     DHT11_init(DHT_PIN);
+    moveEvent = xEventGroupCreateStatic(&moveEventBuffer);
 }
 
 void sensorsTask(void* args){
+    QueueHandle_t sensorQ = (QueueHandle_t)args;
+    EventBits_t bits = 0;
     while(true){
+        sensorReading_t reading;
+        if((bits = xEventGroupWaitBits(moveEvent, MOVE_BIT | NO_MOVE_BIT, true, false, 0))){
+            reading.movementReading.move = bits & MOVE_BIT;
+            reading.dht = false;
+            
+            xQueueSendToBack(sensorQ, &reading, pdMS_TO_TICKS(2000));
+        }
+    
         //Read humidifier
-        struct dht11_reading reading = DHT11_read();
-        if(reading.status == DHT11_OK){
-            ESP_LOGI(TAG, "Temp: %d", reading.temperature);
-            ESP_LOGI(TAG, "Humid: %d", reading.humidity);
+        struct dht11_reading dhtReading = DHT11_read();
+        if(dhtReading.status == DHT11_OK){
+            ESP_LOGI(TAG, "Temp: %d", dhtReading.temperature);
+            ESP_LOGI(TAG, "Humid: %d",dhtReading.humidity);
+
+            reading.dht = true;
+            reading.dhtReading.humidity = dhtReading.humidity;
+            reading.dhtReading.temperature = dhtReading.temperature;
+            xQueueSendToBack(sensorQ, &reading, pdMS_TO_TICKS(2000));
         }
         else{
             ESP_LOGI(TAG, "DHT11 reading failed");

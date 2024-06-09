@@ -6,6 +6,7 @@ idf_component_register(
     "source/lex.yy.c"
     "source/configParser.tab.c"
     "source/sensors.c"
+    "source/connection.c"
 
     "dht11/dht11.c"
                     
