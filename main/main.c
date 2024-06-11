@@ -23,15 +23,26 @@ static StaticEventGroup_t staticConnectedBits;
 static StaticQueue_t staticSensorQueue;
 static uint8_t staticSensorQueueBuffer[SENS_QUEUE_LEN*sizeof(sensorReading_t)];
 
+typedef struct {
+    bool autoMode;
+    bool power;
+} mode_t;
+
 int numPress = 0;
 
+//TODO: Use monitor on mode settings
 static void powerISR(void* args){
     DEBOUNCE
+    mode_t* mode = (mode_t*)args;
+    mode->autoMode = false;
+    mode->power = !mode->power;
     ++numPress;
 }
 
 static void modeISR(void* args){
     DEBOUNCE
+    mode_t* mode = (mode_t*)args;
+    mode->autoMode = !mode->autoMode;
 }
 
 static void received(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data){
@@ -60,11 +71,10 @@ static void setGPIO(){
         .pull_down_en = false,
         .pull_up_en = true,
         .intr_type = GPIO_INTR_NEGEDGE,
-        .pin_bit_mask = RESET_PIN_MASK | POWER_PIN_MASK
+        .pin_bit_mask = RESET_PIN_MASK | POWER_BUTTON_PIN_MASK | MODE_PIN_MASK
     };
     gpio_config(&buttonConfig);
 
-    gpio_isr_handler_add(POWER_PIN, powerISR, NULL);
 
     //Setup output gpio pins
     gpio_config_t outConfig = {
@@ -75,6 +85,16 @@ static void setGPIO(){
         .pin_bit_mask = DIOD_PIN_MASK
     };
     gpio_config(&outConfig);
+
+    gpio_config_t powConfig = {
+        .mode = GPIO_MODE_OUTPUT_OD,
+        .pull_down_en = false,
+        .pull_up_en = false,
+        .intr_type = GPIO_INTR_DISABLE,
+        .pin_bit_mask = POWER_PIN_MASK
+    };
+    gpio_set_level(POWER_PIN, 1); //High is off
+    gpio_config(&powConfig);
 }
 
 static void initialize(){
@@ -116,26 +136,37 @@ void app_main(void)
     esp_mqtt_client_register_event(mqttClient, MQTT_EVENT_CONNECTED, connected, connectedEvent);
     esp_mqtt_client_register_event(mqttClient, MQTT_EVENT_DISCONNECTED, disconnected, connectedEvent);
 
-    uint8_t level = 0;
+    mode_t mode = {
+        .autoMode = true,
+        .power = false 
+    };
+    gpio_isr_handler_add(POWER_BUTTON_PIN, powerISR, &mode);
+    gpio_isr_handler_add(MODE_PIN, modeISR, &mode);
+
+    bool movement = false;
+
     while(1){
         //TODO: Receive sensor data and process it
         sensorReading_t reading;
         xQueueReceive(sensorQ, &reading, portMAX_DELAY);
         if(reading.dht){
-            ESP_LOGI(TAG, "Received dht reading");
+            ESP_LOGI(TAG, "Received dht reading, Temp: %d, Humid: %d", reading.dhtReading.temperature, reading.dhtReading.humidity);
         }else{
-            ESP_LOGI(TAG, "Received move reading");
+            movement = reading.movementReading.move;
+            ESP_LOGI(TAG, "Received move reading, Move: %d", movement);
         }
 
         //Wait until connected
-        xEventGroupWaitBits(connectedEvent, CONNECTED_BIT, false, true, portMAX_DELAY);
-        //TODO: Send data to Home Assistant
+        EventBits_t bits = xEventGroupWaitBits(connectedEvent, CONNECTED_BIT, false, true, 0);
+        if(bits & CONNECTED_BIT){
+            //TODO: Send data to Home Assistant
+
+        }
 
 
 
-        gpio_set_level(DIOD_PIN, level);
-        level = !level;
+        gpio_set_level(DIOD_PIN, mode.power);
+        gpio_set_level(POWER_PIN, !mode.power); // A low signal turns on the relay
         ESP_LOGI(TAG, "Number of presses: %d", numPress);
-        vTaskDelay(100);
     }
 }

@@ -66,7 +66,7 @@ void sensorsTask(void* args){
 
             reading.dht = true;
             reading.dhtReading.humidity = dhtReading.humidity;
-            reading.dhtReading.temperature = dhtReading.temperature;
+            reading.dhtReading.temperature = dhtReading.temperature + TEMP_OFFSET;
             xQueueSendToBack(sensorQ, &reading, pdMS_TO_TICKS(2000));
         }
         else{
