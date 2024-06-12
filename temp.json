@@ -1,0 +1,8 @@
+{
+    "name": "Power",
+    "state_topic": POWER_STATE_TOPIC,
+    "command_topic": POWER_SET_TOPIC,
+    "availability": AVAILABILITY,
+    "unique_id": HAid##"power",
+    "device": HA_DEVICE
+}

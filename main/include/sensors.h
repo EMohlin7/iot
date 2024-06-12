@@ -26,7 +26,7 @@ typedef enum {
     SENSOR_EVENT_MOVE
 } sensorEventId_t;
 
-void initSensors(void);
+void initSensors(QueueHandle_t sensorQ);
 void sensorsTask(void* args);
 
 

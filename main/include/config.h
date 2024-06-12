@@ -7,6 +7,8 @@
 
 #define AP_IP "192.168.4.1"
 
+#define TEMP_THRESHOLD 20
+
 #define RESET_PIN 32
 #define RESET_PIN_MASK (1ull << RESET_PIN)
 
@@ -24,7 +26,7 @@
 
 #define DHT_PIN 25
 #define DHT_PIN_MASK (1ull << DHT_PIN)
-#define DHT_READ_WAIT_MS 2500
+#define DHT_READ_WAIT_MS 10000
 #define TEMP_OFFSET -2
 
 #define DIOD_PIN 5

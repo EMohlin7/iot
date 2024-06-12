@@ -4,11 +4,11 @@
 #include "esp_event.h"
 #include "freertos/event_groups.h"
 #include "config.h"
+#include "utils.h"
 #include <string.h>
 
 #define TAG "Wifi"
 
-#define MIN(a,b) (((a)<(b))?(a):(b))
 
 #define CONNECTED_BIT 1
 #define FAIL_BIT      (1<<1)

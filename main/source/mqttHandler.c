@@ -4,16 +4,9 @@
 #include "config.h"
 #include <string.h>
 #include "freertos/event_groups.h"
-
+#include "HAconfig/HApayloads.h"
 
 #define TAG "MQTT"
-#define edata ((esp_mqtt_event_t*)event_data)
-
-#define moveStringData(destName, src, len) \
-    char destName[len+1];\
-    destName[len] = 0; \
-    memcpy(destName, src, len);
-
 
 static esp_mqtt_client_config_t mqttConfig;
 static EventGroupHandle_t eventGroup = NULL;
@@ -29,7 +22,6 @@ static void connected(void *handler_args, esp_event_base_t base, int32_t event_i
     ESP_LOGI(TAG, "Successfully connected to broker");
     if(eventGroup != NULL)
         xEventGroupSetBits(eventGroup, CONNECTED_BIT);
-    esp_mqtt_client_subscribe_single(edata->client, "test", 1);
 }
 
 static void disconnected(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data){
@@ -44,7 +36,6 @@ static void error(void *handler_args, esp_event_base_t base, int32_t event_id, v
 
 static void subscribed(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data){
     ESP_LOGI(TAG, "Subscribed");
-    ESP_LOGI(TAG, "Packet id %d", esp_mqtt_client_enqueue(edata->client, "test", "hejsan", 7, 0, 0, true));
 }
 
 static void unsubscribed(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data){
@@ -52,10 +43,7 @@ static void unsubscribed(void *handler_args, esp_event_base_t base, int32_t even
 }
 
 static void received(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data){
-    moveStringData(data, edata->data, edata->data_len);
-    moveStringData(topic, edata->topic, edata->topic_len);
-
-    ESP_LOGI(TAG, "Received msg %s on topic %s", data, topic);
+    ESP_LOGI(TAG, "Received msg");
 }
 
 
@@ -78,11 +66,19 @@ esp_mqtt_client_handle_t createMqttClient(const char* clientId){
     mqttConfig.broker.address.transport = MQTT_TRANSPORT_OVER_TCP;
     mqttConfig.broker.address.path = "/";
 
-
     mqttConfig.session.protocol_ver = MQTT_PROTOCOL_V_3_1_1;
     mqttConfig.network.disable_auto_reconnect = true;
     mqttConfig.credentials.client_id = clientId;
     mqttConfig.credentials.set_null_client_id = clientId == NULL ? true : false;
+
+    struct last_will_t lastWill = {
+        .msg = PAYLOAD_NOT_AVAILABLE,
+        .topic = HA_AVAILABILITY_TOPIC,
+        .msg_len = sizeof(PAYLOAD_NOT_AVAILABLE),
+        .qos = 0,
+        .retain = 0
+    };
+    //mqttConfig.session.last_will = lastWill;
 
     esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqttConfig);
     registerEvents(client);

@@ -12,26 +12,42 @@
 #define MOVE_BIT 1
 #define NO_MOVE_BIT 2
 ESP_EVENT_DEFINE_BASE(SENSOR_EVENT);
-static StaticTimer_t moveInitTimer;
-static StaticEventGroup_t moveEventBuffer;
-static EventGroupHandle_t moveEvent;
+static StaticTimer_t moveInitTimerBuffer;
+
+static portMUX_TYPE readLock = portMUX_INITIALIZER_UNLOCKED;
 
 static void movementISR(void* args){
-    EventGroupHandle_t moveEvent = (EventGroupHandle_t)args;
+    QueueHandle_t sensorQ = (QueueHandle_t)args;
     bool high = gpio_get_level(MOVE_PIN);
-    xEventGroupSetBitsFromISR(moveEvent, (MOVE_BIT*high) | (NO_MOVE_BIT * !high), NULL);
+    sensorReading_t reading = {
+        .dht = false,
+        .movementReading = {
+            .move = high
+        }
+    };
+    xQueueSendToBackFromISR(sensorQ, &reading, NULL);
 }
 
 static void onMoveInitFin(TimerHandle_t arg){
-    gpio_isr_handler_add(MOVE_PIN, movementISR, NULL);
+    //The pointer to the queue is stored as the timers id
+    QueueHandle_t sensorQ = (QueueHandle_t)pvTimerGetTimerID(arg);
+    gpio_isr_handler_add(MOVE_PIN, movementISR, sensorQ);
+    bool high = gpio_get_level(MOVE_PIN);
+    sensorReading_t reading = {
+        .dht = false,
+        .movementReading = {
+            .move = high
+        }
+    };
+    xQueueSendToBack(sensorQ, &reading, 0);
     ESP_LOGI(TAG, "Movement sensor initialized");
 }
 
-void initSensors(){
+void initSensors(QueueHandle_t sensorQ){
     gpio_config_t ioConfig = {
         .mode = GPIO_MODE_INPUT,
-        .pull_down_en = false,
-        .pull_up_en = true,
+        .pull_down_en = true,
+        .pull_up_en = false,
         .intr_type = GPIO_INTR_ANYEDGE,
         .pin_bit_mask = MOVE_PIN_MASK
     };
@@ -39,31 +55,22 @@ void initSensors(){
 
     //Movement sensor need 1 minute to initialize
     TimerHandle_t timerHandle = xTimerCreateStatic(
-        "moveInit", pdMS_TO_TICKS(1000*60), false, NULL, onMoveInitFin, &moveInitTimer);
+        "moveInit", pdMS_TO_TICKS(1000*60), false, sensorQ, onMoveInitFin, &moveInitTimerBuffer); 
 
-    xTimerStart(timerHandle, pdMS_TO_TICKS(1000*60));
+    xTimerStart(timerHandle, 0);
     DHT11_init(DHT_PIN);
-    moveEvent = xEventGroupCreateStatic(&moveEventBuffer);
 }
 
 void sensorsTask(void* args){
     QueueHandle_t sensorQ = (QueueHandle_t)args;
-    EventBits_t bits = 0;
     while(true){
         sensorReading_t reading;
-        if((bits = xEventGroupWaitBits(moveEvent, MOVE_BIT | NO_MOVE_BIT, true, false, 0))){
-            reading.movementReading.move = bits & MOVE_BIT;
-            reading.dht = false;
-            
-            xQueueSendToBack(sensorQ, &reading, pdMS_TO_TICKS(2000));
-        }
     
         //Read humidifier
+        taskENTER_CRITICAL(&readLock);
         struct dht11_reading dhtReading = DHT11_read();
+        taskEXIT_CRITICAL(&readLock);
         if(dhtReading.status == DHT11_OK){
-            ESP_LOGI(TAG, "Temp: %d", dhtReading.temperature);
-            ESP_LOGI(TAG, "Humid: %d",dhtReading.humidity);
-
             reading.dht = true;
             reading.dhtReading.humidity = dhtReading.humidity;
             reading.dhtReading.temperature = dhtReading.temperature + TEMP_OFFSET;
