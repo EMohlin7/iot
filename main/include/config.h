@@ -29,8 +29,8 @@
 #define DHT_READ_WAIT_MS 10000
 #define TEMP_OFFSET -2
 
-#define DIOD_PIN 5
-#define DIOD_PIN_MASK (1ull << DIOD_PIN)
+#define MODE_DIODE_PIN 18
+#define MODE_DIODE_PIN_MASK (1ull << MODE_DIODE_PIN)
 
 #define NVS_CONFIG_NS "config"
 #define NVS_SSID_KEY "ssid"

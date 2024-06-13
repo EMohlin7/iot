@@ -20,6 +20,9 @@ power_t initPowerMonitor(bool power, bool autoMode, esp_event_handler_t onPowerH
     ESP_ERROR_CHECK(esp_event_handler_register(POWER_EVENT, SET_POWER_EVENT, onPowerHandler, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register(POWER_EVENT, SET_AUTO_EVENT, onAutoHandler, NULL));
 
+    esp_event_post(POWER_EVENT, SET_POWER_EVENT, &power, sizeof(bool), portMAX_DELAY);
+    esp_event_post(POWER_EVENT, SET_AUTO_EVENT, &autoMode, sizeof(bool), portMAX_DELAY);
+
     return monitor.power;
 }
 

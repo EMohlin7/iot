@@ -29,8 +29,6 @@ static uint8_t staticSensorQueueBuffer[SENS_QUEUE_LEN*sizeof(sensorReading_t)];
 EventGroupHandle_t connectedEvent;
 esp_mqtt_client_handle_t mqttClient;
 
-int numPress = 0;
-
 static int intToAscii(int num, char* a, int len){
     char tmp[len];
     int i = len;
@@ -49,7 +47,6 @@ static int intToAscii(int num, char* a, int len){
 static void powerISR(void* args){
     DEBOUNCE
     setPower(!getPower(0).power, false, 0); //TODO: Fix this
-    ++numPress;
 }
 
 static void modeISR(void* args){
@@ -109,17 +106,17 @@ static void disconnected(void *handler_args, esp_event_base_t base, int32_t even
 
 static void onPowerSet(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data){
     int8_t power = *(int8_t*)event_data;
-    gpio_set_level(DIOD_PIN, power);
     gpio_set_level(POWER_PIN, !power); // A low signal turns on the relay
-    if(xEventGroupWaitBits(connectedEvent, CONNECTED_BIT, false, true, 0) & CONNECTED_BIT){
+    //if(xEventGroupWaitBits(connectedEvent, CONNECTED_BIT, false, true, 0) & CONNECTED_BIT){
         esp_mqtt_client_publish(mqttClient, POWER_STATE_TOPIC, power ? POWER_ON_PAYLOAD : POWER_OFF_PAYLOAD, 0, 1, 0);
-    }
+    //}
 }
 static void onAutoSet(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data){
     int8_t autoMode = *(int8_t*)event_data;
-    if(xEventGroupWaitBits(connectedEvent, CONNECTED_BIT, false, true, 0) & CONNECTED_BIT){
+    gpio_set_level(MODE_DIODE_PIN, autoMode);
+    //if(xEventGroupWaitBits(connectedEvent, CONNECTED_BIT, false, true, 0) & CONNECTED_BIT){
         esp_mqtt_client_publish(mqttClient, AUTO_STATE_TOPIC, autoMode ? POWER_ON_PAYLOAD : POWER_OFF_PAYLOAD, 0, 1, 0);
-    }
+    //}
 }
 
 static void setGPIO(){
@@ -142,7 +139,7 @@ static void setGPIO(){
         .pull_down_en = false,
         .pull_up_en = false,
         .intr_type = GPIO_INTR_DISABLE,
-        .pin_bit_mask = DIOD_PIN_MASK
+        .pin_bit_mask = MODE_DIODE_PIN_MASK
     };
     gpio_config(&outConfig);
 
@@ -240,7 +237,5 @@ void app_main(void)
                 esp_mqtt_client_publish(mqttClient, MOVE_STATE_TOPIC, reading.movementReading.move ? "ON" : "OFF", 0, 1, 0);
             }
         }
-
-        ESP_LOGI(TAG, "Number of presses: %d", numPress);
     }
 }
