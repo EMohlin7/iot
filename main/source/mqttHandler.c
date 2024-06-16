@@ -76,9 +76,9 @@ esp_mqtt_client_handle_t createMqttClient(const char* clientId){
         .topic = HA_AVAILABILITY_TOPIC,
         .msg_len = sizeof(PAYLOAD_NOT_AVAILABLE),
         .qos = 0,
-        .retain = 0
+        .retain = 1
     };
-    //mqttConfig.session.last_will = lastWill;
+    mqttConfig.session.last_will = lastWill;
 
     esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqttConfig);
     registerEvents(client);

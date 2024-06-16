@@ -65,12 +65,20 @@ static void received(void *handler_args, esp_event_base_t base, int32_t event_id
     memcpy(topic, data->topic, data->topic_len);
 
     TickType_t maxWait = pdMS_TO_TICKS(5000); 
-    bool on = strncmp(msg, POWER_ON_PAYLOAD, MIN(data->data_len, sizeof(POWER_ON_PAYLOAD))) == 0;
-    if(strncmp(topic, POWER_SET_TOPIC, MIN(data->topic_len, sizeof(POWER_SET_TOPIC))) == 0){
-        setPower(on, false, maxWait);
+    //Check if we received "offline" on the availability topic and send "online instead". For some reason the last will gets sent when reconnecting too fast 
+    if(strncmp(topic, HA_AVAILABILITY_TOPIC, MIN(data->topic_len, sizeof(HA_AVAILABILITY_TOPIC))) == 0){
+        if(strncmp(msg, PAYLOAD_NOT_AVAILABLE, MIN(data->data_len, sizeof(PAYLOAD_NOT_AVAILABLE))) == 0){
+            esp_mqtt_client_publish(data->client, HA_AVAILABILITY_TOPIC, PAYLOAD_AVAILABLE, sizeof(PAYLOAD_AVAILABLE), 1, 1);
+        }
     }
     else{
-        setPower(getPower(maxWait).power, on, maxWait);
+        bool on = strncmp(msg, POWER_ON_PAYLOAD, MIN(data->data_len, sizeof(POWER_ON_PAYLOAD))) == 0;
+        if(strncmp(topic, POWER_SET_TOPIC, MIN(data->topic_len, sizeof(POWER_SET_TOPIC))) == 0){
+            setPower(on, false, maxWait);
+        }
+        else{
+            setPower(getPower(maxWait).power, on, maxWait);
+        }
     }
 }
 
@@ -79,6 +87,8 @@ static void connected(void *handler_args, esp_event_base_t base, int32_t event_i
     //Subscribe to topics
     esp_mqtt_client_subscribe_single(client, POWER_SET_TOPIC, 0);
     esp_mqtt_client_subscribe_single(client, AUTO_SET_TOPIC, 0);
+
+    esp_mqtt_client_subscribe_single(client, HA_AVAILABILITY_TOPIC, 0);
 
 
     //Send data about device to Home Assistant

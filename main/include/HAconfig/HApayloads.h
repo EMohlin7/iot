@@ -37,20 +37,22 @@
                             "}"
 
 #define HA_DISCOVERY_TEMP_PAYLOAD "{"                                       \
-                            "\"name\": \"Temperature\","                       \
-                            "\"device_class\": \"temperature\", "              \
+                            "\"name\": \"Temperature\","                    \
+                            "\"device_class\": \"temperature\", "           \
                             "\"state_topic\": \"" TEMP_STATE_TOPIC "\" ,"   \
                             "\"availability\": " AVAILABILITY ","           \
                             "\"unique_id\": \"" HAid "temp\","              \
+                            "\"unit_of_measurement\": \"°C\","              \
                             "\"device\": " HA_DEVICE                        \
                             "}"
 
-#define HA_DISCOVERY_HUMID_PAYLOAD "{"                                       \
+#define HA_DISCOVERY_HUMID_PAYLOAD "{"                                      \
                             "\"name\": \"Humidity\","                       \
                             "\"device_class\": \"humidity\", "              \
-                            "\"state_topic\": \"" HUMID_STATE_TOPIC "\" ,"   \
+                            "\"state_topic\": \"" HUMID_STATE_TOPIC "\" ,"  \
                             "\"availability\": " AVAILABILITY ","           \
-                            "\"unique_id\": \"" HAid "humid\","              \
+                            "\"unique_id\": \"" HAid "humid\","             \
+                            "\"unit_of_measurement\": \"%\","              \
                             "\"device\": " HA_DEVICE                        \
                             "}"
 
