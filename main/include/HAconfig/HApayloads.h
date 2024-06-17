@@ -7,7 +7,7 @@
 #define PAYLOAD_AVAILABLE "online"
 #define PAYLOAD_NOT_AVAILABLE "offline"
 
-#define AVAILABILITY "[{\"topic\": \"" HA_AVAILABILITY_TOPIC "\"}]"
+#define AVAILABILITY "[{\"topic\": \"" HA_AVAILABILITY_TOPIC "\", \"payload_available\": \"" PAYLOAD_AVAILABLE "\", \"payload_not_available\": \"" PAYLOAD_NOT_AVAILABLE "\"}]"
 
 #define HA_DISCOVERY_POWER_PAYLOAD "{"                                       \
                             "\"unique_id\": \"" HAid "power\", "             \

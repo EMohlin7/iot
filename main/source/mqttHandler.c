@@ -67,6 +67,7 @@ esp_mqtt_client_handle_t createMqttClient(const char* clientId){
     mqttConfig.broker.address.path = "/";
 
     mqttConfig.session.protocol_ver = MQTT_PROTOCOL_V_3_1_1;
+    mqttConfig.session.keepalive = 60;
     mqttConfig.network.disable_auto_reconnect = true;
     mqttConfig.credentials.client_id = clientId;
     mqttConfig.credentials.set_null_client_id = clientId == NULL ? true : false;
@@ -75,7 +76,7 @@ esp_mqtt_client_handle_t createMqttClient(const char* clientId){
         .msg = PAYLOAD_NOT_AVAILABLE,
         .topic = HA_AVAILABILITY_TOPIC,
         .msg_len = sizeof(PAYLOAD_NOT_AVAILABLE),
-        .qos = 0,
+        .qos = 1,
         .retain = 1
     };
     mqttConfig.session.last_will = lastWill;
