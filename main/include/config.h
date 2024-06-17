@@ -27,7 +27,7 @@
 #define DHT_PIN 25
 #define DHT_PIN_MASK (1ull << DHT_PIN)
 #define DHT_READ_WAIT_MS 10000
-#define TEMP_OFFSET -2
+#define TEMP_OFFSET -1
 
 #define MODE_DIODE_PIN 18
 #define MODE_DIODE_PIN_MASK (1ull << MODE_DIODE_PIN)

@@ -117,16 +117,12 @@ static void disconnected(void *handler_args, esp_event_base_t base, int32_t even
 static void onPowerSet(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data){
     int8_t power = *(int8_t*)event_data;
     gpio_set_level(POWER_PIN, !power); // A low signal turns on the relay
-    //if(xEventGroupWaitBits(connectedEvent, CONNECTED_BIT, false, true, 0) & CONNECTED_BIT){
-        esp_mqtt_client_publish(mqttClient, POWER_STATE_TOPIC, power ? POWER_ON_PAYLOAD : POWER_OFF_PAYLOAD, 0, 1, 0);
-    //}
+    esp_mqtt_client_publish(mqttClient, POWER_STATE_TOPIC, power ? POWER_ON_PAYLOAD : POWER_OFF_PAYLOAD, 0, 1, 0);
 }
 static void onAutoSet(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data){
     int8_t autoMode = *(int8_t*)event_data;
     gpio_set_level(MODE_DIODE_PIN, autoMode);
-    //if(xEventGroupWaitBits(connectedEvent, CONNECTED_BIT, false, true, 0) & CONNECTED_BIT){
-        esp_mqtt_client_publish(mqttClient, AUTO_STATE_TOPIC, autoMode ? POWER_ON_PAYLOAD : POWER_OFF_PAYLOAD, 0, 1, 0);
-    //}
+    esp_mqtt_client_publish(mqttClient, AUTO_STATE_TOPIC, autoMode ? POWER_ON_PAYLOAD : POWER_OFF_PAYLOAD, 0, 1, 0);
 }
 
 static void setGPIO(){
@@ -221,7 +217,7 @@ void app_main(void)
 
         power_t curr = getPower(pdMS_TO_TICKS(3000));
         if(curr.autoMode){
-            if(move && temperature > TEMP_THRESHOLD){
+            if(move && temperature >= TEMP_THRESHOLD){
                 if(!curr.power)
                     switchPower(pdMS_TO_TICKS(3000));
             }
