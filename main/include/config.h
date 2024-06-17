@@ -7,7 +7,7 @@
 
 #define AP_IP "192.168.4.1"
 
-#define TEMP_THRESHOLD 20
+#define TEMP_THRESHOLD 24
 
 #define RESET_PIN 32
 #define RESET_PIN_MASK (1ull << RESET_PIN)
