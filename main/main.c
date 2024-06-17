@@ -46,7 +46,7 @@ static int intToAscii(int num, char* a, int len){
 
 static void powerISR(void* args){
     DEBOUNCE
-    setPower(!getPower(0).power, false, 0); //TODO: Fix this
+    setPower(!getPower(0).power, false, 0);
 }
 
 static void modeISR(void* args){
