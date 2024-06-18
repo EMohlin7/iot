@@ -104,6 +104,8 @@ void connectionTask(void* args){
         while(!connected){
             //If config is cleared, start a server to receive a new config
             if(configCleared){
+                gpio_set_level(CONFIG_DIODE_PIN, 1);
+
                 startWifiAP();
                 startConfigServer(configFinished, &configData);
 
@@ -128,6 +130,7 @@ void connectionTask(void* args){
         saveConfig(nvs, &configData);
         xEventGroupClearBits(connectedHandle, DISCONNECTED_BIT | RESET_BIT);
         xEventGroupSetBits(connectedHandle, CONNECTED_BIT);
+        gpio_set_level(CONFIG_DIODE_PIN, 0);
 
         //Wait until we are disconnected or until the network config is reset by the user
         EventBits_t bits = xEventGroupWaitBits(connectedHandle, DISCONNECTED_BIT | RESET_BIT, false, false, portMAX_DELAY);

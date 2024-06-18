@@ -145,9 +145,10 @@ static void setGPIO(){
         .pull_down_en = false,
         .pull_up_en = false,
         .intr_type = GPIO_INTR_DISABLE,
-        .pin_bit_mask = MODE_DIODE_PIN_MASK
+        .pin_bit_mask = MODE_DIODE_PIN_MASK | CONFIG_DIODE_PIN_MASK
     };
     gpio_config(&outConfig);
+    gpio_set_level(CONFIG_DIODE_PIN, 0);
 
     gpio_config_t powConfig = {
         .mode = GPIO_MODE_OUTPUT_OD,
@@ -228,7 +229,7 @@ void app_main(void)
         }
         
 
-        //Wait until connected
+        //If connected
         EventBits_t bits = xEventGroupWaitBits(connectedEvent, CONNECTED_BIT, false, true, 0);
         if(bits & CONNECTED_BIT){
             if(reading.dht){

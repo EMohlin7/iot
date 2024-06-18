@@ -15,22 +15,25 @@
 #define MODE_PIN 26
 #define MODE_PIN_MASK (1ull << MODE_PIN)
 
-#define POWER_BUTTON_PIN 19
+#define POWER_BUTTON_PIN 12
 #define POWER_BUTTON_PIN_MASK (1ull << POWER_BUTTON_PIN)
 
 #define POWER_PIN 33 
 #define POWER_PIN_MASK (1ull << POWER_PIN)
 
-#define MOVE_PIN 17
+#define MOVE_PIN 27
 #define MOVE_PIN_MASK (1ull << MOVE_PIN)
 
 #define DHT_PIN 25
 #define DHT_PIN_MASK (1ull << DHT_PIN)
 #define DHT_READ_WAIT_MS 10000
-#define TEMP_OFFSET -1
+#define TEMP_OFFSET -2
 
-#define MODE_DIODE_PIN 18
+#define MODE_DIODE_PIN 14
 #define MODE_DIODE_PIN_MASK (1ull << MODE_DIODE_PIN)
+
+#define CONFIG_DIODE_PIN 13
+#define CONFIG_DIODE_PIN_MASK (1ull << CONFIG_DIODE_PIN)
 
 #define NVS_CONFIG_NS "config"
 #define NVS_SSID_KEY "ssid"
