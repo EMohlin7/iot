@@ -121,7 +121,7 @@ void connectionTask(void* args){
                 stopWifi();
                 //Make sure the config gets reset if the button is pressed when previous working config no longer has connection
                 EventBits_t bits = xEventGroupWaitBits(connectedHandle, RESET_BIT, false, true, 0);
-                configCleared = bits & RESET_BIT;
+                configCleared = (bits & RESET_BIT) || configCleared;
             }
         }
 
@@ -134,11 +134,6 @@ void connectionTask(void* args){
         stopMqtt(mqttClient);
         stopWifi();
         connected = false;
-        if(bits & RESET_BIT){
-            configCleared = true; 
-        }
-        else{
-            configCleared = false;
-        }        
+        configCleared = bits & RESET_BIT;
     }
 }
