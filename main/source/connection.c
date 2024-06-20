@@ -91,7 +91,7 @@ void connectionTask(void* args){
     SemaphoreHandle_t configFinished = xSemaphoreCreateBinary();
     configData_t configData;
 
-    gpio_isr_handler_add(RESET_PIN, clearConfigISR, connectedHandle);
+    gpio_isr_handler_add(RESET_BUTTON_PIN, clearConfigISR, connectedHandle);
 
     //Needed for loading and saving config from Non-volatile storage
     nvs_handle_t nvs;

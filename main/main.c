@@ -116,7 +116,8 @@ static void disconnected(void *handler_args, esp_event_base_t base, int32_t even
 
 static void onPowerSet(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data){
     int8_t power = *(int8_t*)event_data;
-    gpio_set_level(POWER_PIN, !power); // A low signal turns on the relay
+    gpio_set_level(POWER_PIN, power);
+    gpio_set_level(POWER_DIODE_PIN, power);
     esp_mqtt_client_publish(mqttClient, POWER_STATE_TOPIC, power ? POWER_ON_PAYLOAD : POWER_OFF_PAYLOAD, 0, 1, 0);
 }
 static void onAutoSet(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data){
@@ -134,7 +135,7 @@ static void setGPIO(){
         .pull_down_en = false,
         .pull_up_en = true,
         .intr_type = GPIO_INTR_NEGEDGE,
-        .pin_bit_mask = RESET_PIN_MASK | POWER_BUTTON_PIN_MASK | MODE_PIN_MASK
+        .pin_bit_mask = RESET_BUTTON_PIN_MASK | POWER_BUTTON_PIN_MASK | MODE_BUTTON_PIN_MASK
     };
     gpio_config(&buttonConfig);
 
@@ -145,20 +146,10 @@ static void setGPIO(){
         .pull_down_en = false,
         .pull_up_en = false,
         .intr_type = GPIO_INTR_DISABLE,
-        .pin_bit_mask = MODE_DIODE_PIN_MASK | CONFIG_DIODE_PIN_MASK
+        .pin_bit_mask = MODE_DIODE_PIN_MASK | CONFIG_DIODE_PIN_MASK | POWER_DIODE_PIN_MASK | POWER_PIN_MASK
     };
-    gpio_config(&outConfig);
-    gpio_set_level(CONFIG_DIODE_PIN, 0);
 
-    gpio_config_t powConfig = {
-        .mode = GPIO_MODE_OUTPUT_OD,
-        .pull_down_en = false,
-        .pull_up_en = false,
-        .intr_type = GPIO_INTR_DISABLE,
-        .pin_bit_mask = POWER_PIN_MASK
-    };
-    gpio_set_level(POWER_PIN, 1); //High is off
-    gpio_config(&powConfig);
+    gpio_config(&outConfig);
 }
 
 static void initialize(){
@@ -201,7 +192,7 @@ void app_main(void)
     esp_mqtt_client_register_event(mqttClient, MQTT_EVENT_DISCONNECTED, disconnected, connectedEvent);
     
     gpio_isr_handler_add(POWER_BUTTON_PIN, powerISR, NULL);
-    gpio_isr_handler_add(MODE_PIN, modeISR, NULL);
+    gpio_isr_handler_add(MODE_BUTTON_PIN, modeISR, NULL);
 
     int temperature = 0;
     bool move = 0;
