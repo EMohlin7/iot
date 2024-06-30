@@ -1,4 +1,17 @@
-idf_component_register(SRC_DIRS "." "source" "dht11" INCLUDE_DIRS "include" "dht11/include")
+idf_component_register(SRCS 
+    "main.c" 
+    "source/configParser.tab.c" 
+    "source/configServer.c"
+    "source/connection.c"
+    "source/lex.yy.c"
+    "source/mqttHandler.c"
+    "source/power.c"
+    "source/sensors.c"
+    "source/wifiController.c"
+    "dht11/dht11.c" 
+
+    INCLUDE_DIRS "include" "dht11/include"
+)
 
 set(PARSER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../main/source/configParser.tab.c)
 set(PARSER_HEAD ${CMAKE_CURRENT_SOURCE_DIR}/../main/include/configParser.tab.h)
