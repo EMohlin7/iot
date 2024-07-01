@@ -172,6 +172,6 @@ Home Assistant uses an internal database to automatically save the data. Setting
 # Finalizing the design
 ![image](https://github.com/EMohlin7/iot/blob/master/image.jpg?raw=true)
 
-The mounting of the DHT11 could be better to improve the airflow over the sensor to make sure it is not effected by the other components. To ease component placement and make styling nicer, one could 3d-print a custom box to contain it instead of making holes in a existing one. All in all, the project went very well and fullfills the intended purpose.   
+The mounting of the DHT11 could be better to improve the airflow over the sensor to make sure it is not effected by the other components. To ease component placement and make styling nicer, one could 3d-print a custom box to contain it instead of making holes in an existing one. All in all, the project went very well and fullfills the intended purpose.   
 
 
