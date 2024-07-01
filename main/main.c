@@ -29,21 +29,6 @@ static uint8_t staticSensorQueueBuffer[SENS_QUEUE_LEN*sizeof(sensorReading_t)];
 EventGroupHandle_t connectedEvent;
 esp_mqtt_client_handle_t mqttClient;
 
-static int intToAscii(int num, char* a, int len){
-    char tmp[len];
-    int i = len;
-    while(num > 0 && i >= 0){
-        --i;
-        tmp[i] = (num % 10) + 48;
-        num /= 10;
-    }
-    if(i == len)
-        return 0;
-    memcpy(a, tmp+i, len-i);
-    a[len-i] = 0;
-    return len-i;
-}
-
 static void powerISR(void* args){
     DEBOUNCE
     setPower(!getPower(0).power, false, 0);
