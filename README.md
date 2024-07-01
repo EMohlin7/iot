@@ -35,7 +35,7 @@ Along with the items in the table, something to build it in is needed. This was 
 
 # Computer setup
 
-This section describes the steps for installing and setting up the needed SDK and environment.
+This section describes the steps for installing and setting up the needed SDK and environment. The steps taken here assume that you are using Ubuntu but any Debian based Linux distrubution should work fine with the exception of installing Visual Studio Code.
 
 ## IDE
 The IDE used to develop this project was Visual Studio Code. Any IDE can be used and if you are replicating this an IDE won't be necessary. To install Visual Studio Code on Ubuntu, open the terminal and write 
