@@ -107,7 +107,9 @@ The same 1K ohm resistors were used to limit the current for all LEDs. The same 
 The ESP32 provides 3.3V when powering the LEDs. Given this information we can calculate the current for the different LEDs.
 
 $$I_R = {3.3V - 1.8V \over 10^3\Omega} = 1.5mA$$
+
 $$I_Y = {3.3V - 2.0V \over 10^3\Omega} = 1.3mA$$
+
 $$I_G = {3.3V - 2.2V \over 10^3\Omega} = 1.1mA$$
 
 This shows that the red LED will shine slightly brighter than the other ones.
