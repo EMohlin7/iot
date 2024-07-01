@@ -13,4 +13,6 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
 
+int intToAscii(int num, char* a, int len);
+
 #endif
