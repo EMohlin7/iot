@@ -7,7 +7,7 @@
 
 #define AP_IP "192.168.4.1"
 
-#define TEMP_THRESHOLD 24
+#define TEMP_THRESHOLD 26
 
 #define POWER_BUTTON_PIN 35
 #define POWER_BUTTON_PIN_MASK (1ull << POWER_BUTTON_PIN)
@@ -39,7 +39,7 @@
 
 
 #define DHT_READ_WAIT_MS 10000
-#define TEMP_OFFSET -2
+#define TEMP_OFFSET -5
 
 #define NVS_CONFIG_NS "config"
 #define NVS_SSID_KEY "ssid"

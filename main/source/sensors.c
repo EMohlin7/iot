@@ -46,7 +46,7 @@ static void onMoveInitFin(TimerHandle_t arg){
 void initSensors(QueueHandle_t sensorQ){
     gpio_config_t ioConfig = {
         .mode = GPIO_MODE_INPUT,
-        .pull_down_en = true,
+        .pull_down_en = false,
         .pull_up_en = false,
         .intr_type = GPIO_INTR_ANYEDGE,
         .pin_bit_mask = MOVE_PIN_MASK

@@ -22,8 +22,6 @@ static void clearConfigISR (void* args){
     xEventGroupSetBitsFromISR(connectedHandle, DISCONNECTED_BIT | RESET_BIT, NULL);
 }
 
-
-
 //Load already saved configuration data from NVS
 static bool loadConfig(nvs_handle_t nvs, configData_t* configData){
     size_t size = sizeof(configData->ssid);
