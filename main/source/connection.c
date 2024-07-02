@@ -19,7 +19,12 @@ static void clearConfigISR (void* args){
     EventGroupHandle_t connectedHandle = (EventGroupHandle_t)args;
     
     xEventGroupClearBitsFromISR(connectedHandle, CONNECTED_BIT);
-    xEventGroupSetBitsFromISR(connectedHandle, DISCONNECTED_BIT | RESET_BIT, NULL);
+    int bits = DISCONNECTED_BIT | RESET_BIT;
+
+    //If the config has already reset, stop the config server
+    if(xEventGroupGetBitsFromISR(connectedHandle) & RESET_BIT)
+        bits = DISCONNECTED_BIT | STOP_CONFIG_BIT;
+    xEventGroupSetBitsFromISR(connectedHandle, bits, NULL);
 }
 
 //Load already saved configuration data from NVS
@@ -28,55 +33,69 @@ static bool loadConfig(nvs_handle_t nvs, configData_t* configData){
     ESP_LOGI(TAG, "Loading config");
     esp_err_t err = nvs_get_str(nvs, NVS_SSID_KEY, (char*)configData->ssid, &size);
     if(err)
-        goto loadFail;
+        return false;
 
     size = sizeof(configData->password);
     err = nvs_get_str(nvs, NVS_PASS_KEY, (char*)configData->password, &size);
     if(err)
-        goto loadFail;
+        return false;
 
     size = sizeof(configData->mqttURL);
     err = nvs_get_str(nvs, NVS_BROKER_ADRS_KEY, (char*)configData->mqttURL, &size);
     if(err)
-        goto loadFail;
+        return false;
 
     err = nvs_get_u16(nvs, NVS_BROKER_PORT_KEY, &configData->mqttPort);
     if(err)
-        goto loadFail;
+        return false;
 
     ESP_LOGI(TAG, "Loaded config");
     return true;
-
-loadFail:
-    ESP_LOGI(TAG, "Failed to load config");
-    return false;
 }
 
 static bool saveConfig(nvs_handle_t nvs, configData_t* configData){
     ESP_LOGI(TAG, "Saving config");
     esp_err_t err = nvs_set_str(nvs, NVS_SSID_KEY, (char*)configData->ssid);
     if(err)
-        goto saveFail;
+        return false;
 
     err = nvs_set_str(nvs, NVS_PASS_KEY, (char*)configData->password);
     if(err)
-        goto saveFail;
+        return false;
 
     err = nvs_set_str(nvs, NVS_BROKER_ADRS_KEY, (char*)configData->mqttURL);
     if(err)
-        goto saveFail;
+        return false;
 
     err = nvs_set_u16(nvs, NVS_BROKER_PORT_KEY, configData->mqttPort);
     if(err)
-        goto saveFail;
+        return false;
 
-    ESP_LOGI(TAG, "Save config");
+    ESP_LOGI(TAG, "Saved config");
     return true;
-saveFail:
-    ESP_LOGI(TAG, "Failed to save config");
-    return false;
 }
 
+static void getConfig(EventGroupHandle_t connectedHandle, configData_t* configData){
+    gpio_set_level(CONFIG_DIODE_PIN, 1);
+
+    startWifiAP();
+    httpd_handle_t configServer = startConfigServer(connectedHandle, configData);
+
+    ESP_LOGI(TAG, "Waiting for config");
+    //Wait for the config to finish or the config button to be pressed again in order to stop the config server
+    EventBits_t bits = xEventGroupWaitBits(connectedHandle, FINISHED_CONFIG_BIT | STOP_CONFIG_BIT, true, false, portMAX_DELAY);
+    gpio_set_level(CONFIG_DIODE_PIN, 0);
+
+    if(bits & STOP_CONFIG_BIT){
+        ESP_LOGI(TAG, "Stopped config");
+        stopConfigServer(configServer, connectedHandle); 
+        // A bit ugly but have to clear finished bit that is set in "stopConfigServer"
+        xEventGroupClearBits(connectedHandle, FINISHED_CONFIG_BIT);
+    }
+    ESP_LOGI(TAG, "Config is finished");
+
+    stopWifi();
+}
 
 void connectionTask(void* args){
     configTaskArgs_t* arg = (configTaskArgs_t*)args;
@@ -85,8 +104,6 @@ void connectionTask(void* args){
     bool connected = false;
     bool configCleared = true;
 
-    //Semaphore is created in an empty state
-    SemaphoreHandle_t configFinished = xSemaphoreCreateBinary();
     configData_t configData;
 
     gpio_isr_handler_add(RESET_BUTTON_PIN, clearConfigISR, connectedHandle);
@@ -102,16 +119,7 @@ void connectionTask(void* args){
         while(!connected){
             //If config is cleared, start a server to receive a new config
             if(configCleared){
-                gpio_set_level(CONFIG_DIODE_PIN, 1);
-
-                startWifiAP();
-                startConfigServer(configFinished, &configData);
-
-                ESP_LOGI(TAG, "Waiting for config");
-                xSemaphoreTake(configFinished, portMAX_DELAY);
-                ESP_LOGI(TAG, "Config is finished");
-
-                stopWifi();
+                getConfig(connectedHandle, &configData);
             }
             
             connected = startWifiSTA(configData.ssid, configData.password) && 
@@ -125,10 +133,10 @@ void connectionTask(void* args){
             }
         }
 
+        //---When connected---
         saveConfig(nvs, &configData);
         xEventGroupClearBits(connectedHandle, DISCONNECTED_BIT | RESET_BIT);
         xEventGroupSetBits(connectedHandle, CONNECTED_BIT);
-        gpio_set_level(CONFIG_DIODE_PIN, 0);
 
         //Wait until we are disconnected or until the network config is reset by the user
         EventBits_t bits = xEventGroupWaitBits(connectedHandle, DISCONNECTED_BIT | RESET_BIT, false, false, portMAX_DELAY);

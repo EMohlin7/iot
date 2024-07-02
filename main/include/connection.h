@@ -8,6 +8,8 @@
 #define CONNECTED_BIT 1
 #define DISCONNECTED_BIT 2
 #define RESET_BIT 4
+#define FINISHED_CONFIG_BIT 8
+#define STOP_CONFIG_BIT 16
 
 typedef struct {
     EventGroupHandle_t connectedHandle;

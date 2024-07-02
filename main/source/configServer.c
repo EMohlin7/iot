@@ -1,4 +1,5 @@
 #include "configServer.h"
+#include "connection.h"
 #include "esp_log.h"
 #include "esp_http_server.h"
 #include "config.h"
@@ -45,12 +46,12 @@ static esp_err_t onPOST(httpd_req_t* req){
 
 //Use this event handler to stop the server, in order for the server to not block itself when trying to stop
 static void stopHandler(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data){
-    SemaphoreHandle_t sem = (SemaphoreHandle_t) event_handler_arg;
+    EventGroupHandle_t eventHandle = (EventGroupHandle_t) event_handler_arg;
     httpd_handle_t server = *(httpd_handle_t*)event_data;
-    stopConfigServer(server, sem);
+    stopConfigServer(server, eventHandle);
 }
 
-httpd_handle_t startConfigServer(SemaphoreHandle_t finishedSignal, configData_t* data){
+httpd_handle_t startConfigServer(EventGroupHandle_t finishedSignal, configData_t* data){
     httpd_handle_t server = NULL;
     httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
 
@@ -81,12 +82,12 @@ httpd_handle_t startConfigServer(SemaphoreHandle_t finishedSignal, configData_t*
     return server;
 }
 
-void stopConfigServer(httpd_handle_t server, SemaphoreHandle_t finSignal){
+void stopConfigServer(httpd_handle_t server, EventGroupHandle_t finSignal){
     if(server == NULL)
         return;
     ESP_LOGI(TAG, "Stopping server...");
     ESP_ERROR_CHECK(httpd_stop(server));
     ESP_LOGI(TAG, "Stopped server");
     
-    xSemaphoreGive(finSignal);
+    xEventGroupSetBits(finSignal, FINISHED_CONFIG_BIT);
 }

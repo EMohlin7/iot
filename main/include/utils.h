@@ -1,5 +1,6 @@
 #ifndef UTILS_H
 #define UTILS_H
+#include "config.h"
 
 #define DEBOUNCE {static TickType_t lastTick = 0;               \
     TickType_t tick = xTaskGetTickCountFromISR();               \
