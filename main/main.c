@@ -26,7 +26,6 @@ static StaticEventGroup_t staticConnectedBits;
 static StaticQueue_t staticSensorQueue;
 static uint8_t staticSensorQueueBuffer[SENS_QUEUE_LEN*sizeof(sensorReading_t)];
 
-EventGroupHandle_t connectedEvent;
 esp_mqtt_client_handle_t mqttClient;
 
 static void powerISR(void* args){
@@ -59,10 +58,10 @@ static void received(void *handler_args, esp_event_base_t base, int32_t event_id
     else{
         bool on = strncmp(msg, POWER_ON_PAYLOAD, MIN(data->data_len, sizeof(POWER_ON_PAYLOAD))) == 0;
         if(strncmp(topic, POWER_SET_TOPIC, MIN(data->topic_len, sizeof(POWER_SET_TOPIC))) == 0){
-            setPower(on, false, maxWait);
+            setPower(on, false, maxWait); //Set power
         }
         else{
-            setPower(getPower(maxWait).power, on, maxWait);
+            setPower(getPower(maxWait).power, on, maxWait); //Set auto mode
         }
     }
 }
@@ -157,7 +156,7 @@ static void initialize(){
 void app_main(void)
 {
     initialize();
-    connectedEvent = xEventGroupCreateStatic(&staticConnectedBits);
+    EventGroupHandle_t connectedEvent = xEventGroupCreateStatic(&staticConnectedBits);
     xEventGroupClearBits(connectedEvent, CONNECTED_BIT);
     xEventGroupSetBits(connectedEvent, DISCONNECTED_BIT);
 
