@@ -88,9 +88,7 @@ static void getConfig(EventGroupHandle_t connectedHandle, configData_t* configDa
 
     if(bits & STOP_CONFIG_BIT){
         ESP_LOGI(TAG, "Stopped config");
-        stopConfigServer(configServer, connectedHandle); 
-        // A bit ugly but have to clear finished bit that is set in "stopConfigServer"
-        xEventGroupClearBits(connectedHandle, FINISHED_CONFIG_BIT);
+        stopConfigServer(configServer); 
     }
     ESP_LOGI(TAG, "Config is finished");
 

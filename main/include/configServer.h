@@ -15,5 +15,5 @@ typedef struct
 
 
 httpd_handle_t startConfigServer(EventGroupHandle_t finishedSignal, configData_t* data);
-void stopConfigServer(httpd_handle_t server, EventGroupHandle_t finishedSignal);
+void stopConfigServer(httpd_handle_t server);
 #endif

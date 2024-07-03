@@ -48,7 +48,8 @@ static esp_err_t onPOST(httpd_req_t* req){
 static void stopHandler(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data){
     EventGroupHandle_t eventHandle = (EventGroupHandle_t) event_handler_arg;
     httpd_handle_t server = *(httpd_handle_t*)event_data;
-    stopConfigServer(server, eventHandle);
+    stopConfigServer(server);
+    xEventGroupSetBits(eventHandle, FINISHED_CONFIG_BIT);
 }
 
 httpd_handle_t startConfigServer(EventGroupHandle_t finishedSignal, configData_t* data){
@@ -82,12 +83,10 @@ httpd_handle_t startConfigServer(EventGroupHandle_t finishedSignal, configData_t
     return server;
 }
 
-void stopConfigServer(httpd_handle_t server, EventGroupHandle_t finSignal){
+void stopConfigServer(httpd_handle_t server){
     if(server == NULL)
         return;
     ESP_LOGI(TAG, "Stopping server...");
     ESP_ERROR_CHECK(httpd_stop(server));
     ESP_LOGI(TAG, "Stopped server");
-    
-    xEventGroupSetBits(finSignal, FINISHED_CONFIG_BIT);
 }
